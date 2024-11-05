@@ -71,7 +71,6 @@ async function displayVehicles() {
             marker: marker,
             tooltip: tooltip,
             lastUpdated: element.lastUpdated,
-            lastMoved: element.lastMoved,
           };
         }
         setIconAngle(vehicleNumber, element.bearing);
@@ -115,39 +114,6 @@ function parseVehicleNumber(listID) {
   return vehicleNumber;
 }
 
-function calculateBearing(oldLat, oldLon, newLat, newLon) {
-  dx = newLon - oldLon;
-  dy = newLat - oldLat;
-  dy = -dy;
-  if (Math.abs(dx) < MINIMUM_DISTANCE && Math.abs(dy) < MINIMUM_DISTANCE) {
-    return null;
-  }
-  angle = Math.atan(dy / dx);
-  if (dx < 0) {
-    angle += Math.PI;
-  }
-
-  angle = angle * (1 / DEG_TO_RAD);
-  console.log("dy", dy, "dx", dx, "angle", angle + 90);
-  return angle + ICON_ANGLE_OFFSET + 90;
-}
-
-/*
-function calculateBearing(oldLat, oldLon, newLat, newLon) {
-  dx = newLon - oldLon;
-  dy = newLat - oldLat;
-  if (Math.abs(dx) < MINIMUM_DISTANCE && Math.abs(dy) < MINIMUM_DISTANCE) {
-    return null;
-  }
-  const y = Math.sin(newLon - oldLon) * Math.cos(newLat);
-  const x =
-    Math.cos(oldLat) * Math.sin(newLat) -
-    Math.sin(oldLat) * Math.cos(newLat) * Math.cos(newLon - oldLon);
-  const angle = Math.atan2(y, x);
-  const brng = ((angle * 180) / Math.PI + 360) % 360;
-  return 360 - brng + ICON_ANGLE_OFFSET;
-}
-*/
 function deleteInactive() {
   const now = Date.now();
 

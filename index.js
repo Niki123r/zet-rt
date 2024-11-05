@@ -61,10 +61,10 @@ async function cacheLocations() {
 
 function processVehicle(vehicle) {
   const vehicleID = vehicle.detailsLocation.vehicle.vehicleNumber;
+  const now = Date.now();
   if (vehicles[vehicleID] != null) {
     var lat = vehicle.detailsLocation.location.lat;
     var lon = vehicle.detailsLocation.location.lon;
-    const now = Date.now();
 
     vehicles[vehicleID].lat = lat;
     vehicles[vehicleID].lon = lon;
