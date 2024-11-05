@@ -11,6 +11,8 @@ const VEHICLE_ICON_SIZE = 23;
 const MINIMUM_DISTANCE = Math.pow(10, -4);
 const ICON_ANGLE_OFFSET = 225;
 const SECONDS_TO_MILLISECONDS = 1000;
+const VEHICLE_INACTIVE_MS = 5 * 60 * SECONDS_TO_MILLISECONDS;
+const VEHICLE_STATIONARY_MS = 2 * 60 * SECONDS_TO_MILLISECONDS;
 
 async function displayVehicles() {
   try {
@@ -26,46 +28,54 @@ async function displayVehicles() {
         if (vehicleMarkers[listID] != null) {
           var lat = element.lat;
           var lon = element.lon;
-          setIconAngle(vehicleNumber, element.bearing);
-          document.getElementById(vehicleNumber).style.display = "block";
-          vehicleMarkers[listID].lastUpdated = element.lastUpdated;
           var newLatLng = new L.LatLng(lat, lon);
           vehicleMarkers[listID].marker.setLatLng(newLatLng);
-          vehicleMarkers[listID].oldLat = lat;
-          vehicleMarkers[listID].oldLon = lon;
-          continue;
+
+          document.getElementById(vehicleNumber).style.display = "block";
+          vehicleMarkers[listID].lastUpdated = element.lastUpdated;
+          if (
+            Date.now() - vehicleMarkers[listID].lastUpdated >
+            VEHICLE_INACTIVE_MS
+          ) {
+            vehicleMarkers[listID].marker._icon.classList.add(
+              "vehicle-inactive"
+            );
+          }
+        } else {
+          const iconClass =
+            "vehicle-icon" +
+            (isInactiveAge(element.lastUpdated) ? " vehicle-inactive" : "");
+          const markerIcon = L.divIcon({
+            className: iconClass,
+            iconSize: [VEHICLE_ICON_SIZE, VEHICLE_ICON_SIZE],
+            iconAnchor: [VEHICLE_ICON_SIZE / 2, VEHICLE_ICON_SIZE / 2],
+            popupAnchor: [0, 0],
+            html:
+              `<b> <p class="vehicle-text"> ${element.routeID} </b> </br>` +
+              "<small> " +
+              VR.slice(-2) +
+              "</small>" +
+              " </p>" +
+              `<img class="vehicle-pointer" id="${vehicleNumber}" src="arrow.svg">`,
+          });
+
+          let marker = L.marker([element.lat, element.lon], {
+            icon: markerIcon,
+            riseOnHover: true,
+          });
+          //marker.bindPopup("<p>" + vehicleNumber + "<br/> VR: " + VR + "</p>");
+          const tooltip = `<b> ${vehicleNumber} </b> - Linija <b>${element.routeID} </b>`;
+          marker.bindTooltip(tooltip);
+          marker.addTo(map);
+          vehicleMarkers[listID] = {
+            marker: marker,
+            tooltip: tooltip,
+            lastUpdated: element.lastUpdated,
+            lastMoved: element.lastMoved,
+          };
         }
-
-        const markerIcon = L.divIcon({
-          className: "vehicle-icon",
-          iconSize: [VEHICLE_ICON_SIZE, VEHICLE_ICON_SIZE],
-          iconAnchor: [VEHICLE_ICON_SIZE / 2, VEHICLE_ICON_SIZE / 2],
-          popupAnchor: [0, 0],
-          html:
-            `<b> <p class="vehicle-text"> ${element.routeID} </b> </br>` +
-            "<small> " +
-            VR.slice(-2) +
-            "</small>" +
-            " </p>" +
-            `<img class="vehicle-pointer" id="${vehicleNumber}" src="arrow.svg">`,
-        });
-
-        let marker = L.marker([element.lat, element.lon], {
-          icon: markerIcon,
-          riseOnHover: true,
-        });
-        //marker.bindPopup("<p>" + vehicleNumber + "<br/> VR: " + VR + "</p>");
-        marker.bindTooltip(
-          `<b> ${vehicleNumber} </b> - Linija <b>${element.routeID} </b>`
-        );
-        marker.addTo(map);
-        vehicleMarkers[listID] = {
-          marker: marker,
-          oldLat: element.lat,
-          oldLon: element.lon,
-          lastUpdated: element.lastUpdated,
-        };
-        setTimeout(() => setIconAngle(vehicleNumber, element.bearing), 50);
+        setIconAngle(vehicleNumber, element.bearing);
+        checkStationary(vehicleNumber, element.lastMoved);
       } catch (error) {}
     }
   } catch (error) {
@@ -80,80 +90,15 @@ function setIconAngle(vehicleNumber, angle) {
   }deg)`;
 }
 
-let latlng = [45.799755, 15.97396];
-let offsetList = [
-  [0, 0],
-  [0, 1],
-  [1, 1],
-  [1, 0],
-  [0, 0],
-  [1, 1],
-  [2, 0],
-  [1, -1],
-];
-let index = 0;
-let serviceID = "0_24_1302_13_10624";
-let vehicleNumber = "10334";
-async function displayVehiclesTest() {
-  const VR = serviceID.split("_")[2];
-  const listID = vehicleNumber;
-  var lat = latlng[0];
-  var lng = latlng[1];
-  lat += offsetList[index % offsetList.length][0] / Math.pow(5, 4);
-  lng += offsetList[index % offsetList.length][1] / Math.pow(5, 4);
-  index += 1;
-  if (vehicleMarkers[listID] != null) {
-    const angle = calculateBearing(
-      vehicleMarkers[listID].oldLat,
-      vehicleMarkers[listID].oldLon,
-      lat,
-      lng
+function calculateDataAge() {
+  const now = Date.now();
+  for (let vehicle of Object.entries(vehicleMarkers)) {
+    let age = (now - vehicle[1].lastUpdated) / SECONDS_TO_MILLISECONDS;
+    age = Math.round(age);
+    vehicle[1].marker._tooltip.setContent(
+      vehicle[1].tooltip + ` \n(${secondsToHHMMSS(age)} ago)`
     );
-    if (angle == null) {
-      document.getElementById(vehicleNumber).style.display = "none";
-    } else {
-      document.getElementById(
-        vehicleNumber
-      ).style.transform = `rotate(${angle}deg)`;
-      document.getElementById(vehicleNumber).style.display = "block";
-      vehicleMarkers[listID].lastUpdated = Date.now();
-    }
-
-    var newLatLng = new L.LatLng(lat, lng);
-    vehicleMarkers[listID].marker.setLatLng(newLatLng);
-    vehicleMarkers[listID].oldLat = lat;
-    vehicleMarkers[listID].oldLon = lng;
-    return;
   }
-
-  const markerIcon = L.divIcon({
-    className: "vehicle-icon",
-    iconSize: [VEHICLE_ICON_SIZE, VEHICLE_ICON_SIZE],
-    iconAnchor: [VEHICLE_ICON_SIZE / 2, VEHICLE_ICON_SIZE / 2],
-    popupAnchor: [0, 0],
-    html:
-      `<b> <p class="vehicle-text"> 13 </b> </br>` +
-      "<small> " +
-      VR.slice(-2) +
-      "</small>" +
-      " </p>" +
-      `<img class="vehicle-pointer" id="${vehicleNumber}" src="arrow.svg">`,
-  });
-
-  let marker = L.marker([lat, lng], {
-    icon: markerIcon,
-    riseOnHover: true,
-  });
-  //marker.bindPopup("<p>" + vehicleNumber + "<br/> VR: " + VR + "</p>");
-  marker.bindTooltip(`<b> ${vehicleNumber} </b> - Linija <b> 13 </b>`);
-  marker.addTo(map);
-  vehicleMarkers[listID] = {
-    lastUpdated: Date.now(),
-    marker: marker,
-    oldLat: lat,
-    oldLon: lng,
-    secondsSinceUpdated: 0,
-  };
 }
 
 function parseVehicleNumber(listID) {
@@ -207,31 +152,49 @@ function deleteInactive() {
   const now = Date.now();
 
   Object.entries(vehicleMarkers).filter((marker) => {
-    if (
-      Math.abs(now - marker[1].lastUpdated) >
-      5 * 60 * SECONDS_TO_MILLISECONDS
-    ) {
+    if (Math.abs(now - marker[1].lastUpdated) > VEHICLE_INACTIVE_MS) {
       marker[1].marker.remove();
       return false;
     }
   });
 }
 
-function checkStationary() {
+function checkStationary(vehicleNumber, lastMoved) {
   const now = Date.now();
-  for (marker of Object.entries(vehicleMarkers)) {
-    const listID = element.details.vehicle.vehicleNumber;
-    const vehicleNumber = parseVehicleNumber(listID);
-    marker[1].secondsSinceUpdated = now - marker[1].lastUpdated;
-    if (
-      Math.abs(now - marker[1].lastUpdated) >
-      1 * 60 * SECONDS_TO_MILLISECONDS
-    ) {
-      document.getElementById(vehicleNumber).style.display = "none";
-    }
+  const element = document.getElementById(vehicleNumber);
+  if (Math.abs(now - lastMoved) > VEHICLE_STATIONARY_MS) {
+    element.style.display = "none";
+  } else {
+    element.style.display = "block";
   }
 }
 
+function secondsToHHMMSS(seconds) {
+  const hours = Math.floor(seconds / 60 / 60);
+  const minutes = Math.floor(seconds / 60) % 60;
+  seconds = seconds % 60;
+
+  let string = "";
+
+  if (hours > 0) {
+    string += `${hours}h`;
+  }
+  if (minutes > 0 || hours > 0) {
+    string += `${minutes}m`;
+  }
+  string += `${seconds}s`;
+  return string;
+}
+
+function isStationaryAge(lastMoved) {
+  return Date.now() - lastMoved > VEHICLE_STATIONARY_MS;
+}
+
+function isInactiveAge(lastUpdated) {
+  return Date.now() - lastUpdated > VEHICLE_INACTIVE_MS;
+}
+
 setInterval(displayVehicles, 10000);
-//setTimeout(deleteInactive, 10000);
+setInterval(calculateDataAge, 1000);
+setTimeout(deleteInactive, 10000);
 displayVehicles();

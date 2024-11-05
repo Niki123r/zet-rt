@@ -1,5 +1,7 @@
 const { MINIMUM_DISTANCE, DEG_TO_RAD } = require("./contstants");
 
+// here we are calculating an angle on spherical geometry using plane geometry, which isn't ideal...
+// ...but it works well enough
 function calculateBearing(oldLat, oldLon, newLat, newLon) {
   dx = newLon - oldLon;
   dy = newLat - oldLat;
