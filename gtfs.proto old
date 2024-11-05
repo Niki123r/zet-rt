@@ -1,0 +1,40 @@
+syntax = "proto3";
+message Message {
+    RT mess = 1;
+    repeated VehicleData vehicle = 2;
+}
+
+message RT {
+    message Header {
+        string version = 1;
+        int32 two = 2;
+        int32 timestamp = 3;
+    }
+}
+message VehicleData {
+    string id = 1;
+    Details details = 4;
+}
+
+message Details {
+    ScheduleData scheduleData = 1;
+    LocationData location = 2;
+    int32 timestamp = 5;
+    Vehicle vehicle = 8;
+}
+
+message ScheduleData {
+    string vehicleId = 1;
+    string date = 3;
+    int32 a = 4;
+    string routeId = 5;
+}
+
+message LocationData {
+    float lat = 1;
+    float lon = 2;
+}
+
+message Vehicle {
+    string vehicleNumber = 1;
+}

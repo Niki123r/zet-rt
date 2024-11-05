@@ -1,0 +1,60 @@
+:root {
+  --primary-color: #fff;
+  --secondary-color: #ddd;
+  /*
+  --vehicle-color: #00a3e3;
+  --vehicle-secondary-color: #0277ba;
+  */
+  --vehicle-color: #3762b2;
+  --vehicle-secondary-color: #29477f;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+}
+html,
+body,
+#map {
+  height: 100%;
+  width: 100vw;
+}
+/*
+#map {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  z-index: 10;
+}
+*/
+small {
+  color: var(--secondary-color);
+  font-size: 75%;
+}
+
+.vehicle-icon {
+  background-color: var(--vehicle-color);
+  color: var(--primary-color);
+  text-align: center;
+  border-radius: 50%;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  line-height: 75%;
+  border-color: var(--vehicle-secondary-color);
+  border-style: solid;
+  border-width: 3px;
+}
+
+.vehicle-text {
+  margin: 0;
+  margin-top: 3px;
+  padding: 0;
+}
+
+.vehicle-pointer {
+  position: absolute;
+  color: var(--vehicle-secondary-color);
+  z-index: -2;
+  display: none;
+}

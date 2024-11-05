@@ -1,0 +1,5 @@
+const DEG_TO_RAD = Math.PI / 180;
+const MINIMUM_DISTANCE = Math.pow(10, -4);
+const SECONDS_TO_MILLISECONDS = 1000;
+
+module.exports = { DEG_TO_RAD, MINIMUM_DISTANCE, SECONDS_TO_MILLISECONDS };
