@@ -36,7 +36,9 @@ async function cacheLocations() {
       });
 
       for (let vehicle of data.vehicle) {
-        processVehicle(vehicle);
+        try {
+          processVehicle(vehicle);
+        } catch (e) {}
       }
       let cache = [];
       for (let element of Object.entries(vehicles)) {
