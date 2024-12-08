@@ -9,6 +9,7 @@ app.use(express.static("public"));
 
 const url = "https://www.zet.hr/gtfs-rt-protobuf";
 const protoLocation = "gtfs.proto";
+const fetchPeriod = 10; // seconds
 
 let vehicles = {};
 
@@ -113,7 +114,7 @@ async function writeJSON(json, file_name) {
   });
 }
 
-setInterval(cacheLocations, 10000);
+setInterval(cacheLocations, fetchPeriod * 1000);
 cacheLocations();
 
 app.listen(port, () => {

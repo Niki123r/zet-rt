@@ -13,10 +13,26 @@ const ICON_ANGLE_OFFSET = 225;
 const SECONDS_TO_MILLISECONDS = 1000;
 const VEHICLE_INACTIVE_MS = 5 * 60 * SECONDS_TO_MILLISECONDS;
 const VEHICLE_STATIONARY_MS = 2 * 60 * SECONDS_TO_MILLISECONDS;
+const fetchPeriod = 10;
+
+let lastFetchTimestamp = Infinity;
+
+function update() {
+  const dataAge = Date.now() - lastFetchTimestamp;
+  if (dataAge > fetchPeriod * 1000) {
+    console.log("Fetching vehicle data " + secondsToHHMMSS(dataAge / 1000));
+    displayVehicles();
+    deleteInactive();
+  }
+  updateDataAge();
+}
 
 async function displayVehicles() {
+  let timestampNow = Date.now();
+  console.log(Math.floor(timestampNow / 1000) % fetchPeriod);
   try {
     const response = await fetch("/api/vehicleLocations");
+    lastFetchTimestamp = Date.now();
     const data = await response.json();
 
     for (let element of data) {
@@ -89,7 +105,7 @@ function setIconAngle(vehicleNumber, angle) {
   }deg)`;
 }
 
-function calculateDataAge() {
+function updateDataAge() {
   const now = Date.now();
   for (let vehicle of Object.entries(vehicleMarkers)) {
     let age = (now - vehicle[1].lastUpdated) / SECONDS_TO_MILLISECONDS;
@@ -97,6 +113,16 @@ function calculateDataAge() {
     vehicle[1].marker._tooltip.setContent(
       vehicle[1].tooltip + ` \n(${secondsToHHMMSS(age)} ago)`
     );
+  }
+}
+
+function calculateDataAge() {
+  const now = Date.now();
+  try {
+    return now - Object.entries(vehicleMarkers)[0][1].lastUpdated;
+  } catch (error) {
+    console.error(error);
+    return 0;
   }
 }
 
@@ -160,7 +186,15 @@ function isInactiveAge(lastUpdated) {
   return Date.now() - lastUpdated > VEHICLE_INACTIVE_MS;
 }
 
-setInterval(displayVehicles, 10000);
-setInterval(calculateDataAge, 1000);
-setTimeout(deleteInactive, 10000);
-displayVehicles();
+async function getFetchTimestamp() {
+  const res = await fetch("/api/fetchTimestamp");
+  const timestamp = await res.json();
+  return timestamp;
+}
+
+async function setup() {
+  displayVehicles();
+  setInterval(update, 1000);
+}
+
+setup();
