@@ -19,8 +19,7 @@ let lastFetchTimestamp = Infinity;
 
 function update() {
   const dataAge = Date.now() - lastFetchTimestamp;
-  if (dataAge > fetchPeriod * 1000) {
-    console.log("Fetching vehicle data " + secondsToHHMMSS(dataAge / 1000));
+  if (dataAge - 1000 > fetchPeriod * 1000) {
     displayVehicles();
     deleteInactive();
   }
@@ -28,14 +27,12 @@ function update() {
 }
 
 async function displayVehicles() {
-  let timestampNow = Date.now();
-  console.log(Math.floor(timestampNow / 1000) % fetchPeriod);
   try {
     const response = await fetch("/api/vehicleLocations");
-    lastFetchTimestamp = Date.now();
     const data = await response.json();
+    lastFetchTimestamp = data.timestamp;
 
-    for (let element of data) {
+    for (let element of data.vehicles) {
       try {
         const VR = element.scheduleID.split("_")[2];
         const listID = element.vehicleNumber;

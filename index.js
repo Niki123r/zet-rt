@@ -52,10 +52,15 @@ async function cacheLocations() {
           lon: vehicle.lon,
           bearing: vehicle.bearing,
           lastUpdated: vehicle.lastUpdated,
+          lastUpdatedZET: vehicle.lastUpdatedZET,
           lastMoved: vehicle.lastMoved,
         });
       }
-      writeJSON(cache, "vehicles");
+      const vehicleLocations = {
+        timestamp: Date.now(),
+        vehicles: cache,
+      };
+      writeJSON(vehicleLocations, "vehicles");
     } catch (error) {
       console.error(error);
     }
@@ -84,6 +89,8 @@ function processVehicle(vehicle) {
     vehicles[vehicleID].oldLat = lat;
     vehicles[vehicleID].oldLon = lon;
     vehicles[vehicleID].lastUpdated = now;
+    vehicles[vehicleID].lastUpdatedZET =
+      vehicle.detailsLocation.timestamp * 1000;
     return;
   }
   vehicles[vehicleID] = {
@@ -96,6 +103,7 @@ function processVehicle(vehicle) {
     oldLon: null,
     bearing: null,
     lastUpdated: Date.now(),
+    lastUpdatedZET: vehicle.detailsLocation.timestamp * 1000,
     lastMoved: Date.now(),
   };
 }
