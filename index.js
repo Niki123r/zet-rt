@@ -91,6 +91,10 @@ function processVehicle(vehicle) {
     vehicles[vehicleID].lastUpdated = now;
     vehicles[vehicleID].lastUpdatedZET =
       vehicle.detailsLocation.timestamp * 1000;
+
+    vehicles[vehicleID].scheduleID =
+      vehicle.detailsLocation.scheduleData.vehicleId;
+    vehicles[vehicleID].routeID = vehicle.detailsLocation.scheduleData.routeId;
     return;
   }
   vehicles[vehicleID] = {
@@ -122,8 +126,33 @@ async function writeJSON(json, file_name) {
   });
 }
 
-setInterval(cacheLocations, fetchPeriod * 1000);
-cacheLocations();
+async function loadOldVehicles() {
+  try {
+    let file = fs.readFileSync("./cache/vehicles.json");
+    const json = JSON.parse(file.toString());
+    for (let vehicle of json.vehicles) {
+      vehicles[vehicle.vehicleNumber] = vehicle;
+    }
+    console.log(vehicles);
+  } catch {}
+}
+
+function setupFolders(folders) {
+  for (let folder of folders) {
+    if (!fs.existsSync(folder)) {
+      fs.mkdirSync(folder);
+    }
+  }
+}
+
+function setup() {
+  setupFolders(["./cache"]);
+  loadOldVehicles();
+  setInterval(cacheLocations, fetchPeriod * 1000);
+  cacheLocations();
+}
+
+setup();
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);

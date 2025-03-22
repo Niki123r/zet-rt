@@ -53,6 +53,10 @@ async function displayVehicles() {
             vehicleMarkers[listID].marker._icon.classList.add(
               "vehicle-inactive"
             );
+          } else {
+            vehicleMarkers[listID].marker._icon.classList.remove(
+              "vehicle-inactive"
+            );
           }
         } else {
           const iconClass =
