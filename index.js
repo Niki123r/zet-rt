@@ -4,7 +4,7 @@ const { calculateBearing } = require("./utils.js");
 const fs = require("fs");
 
 const app = express();
-const port = 8080;
+const port = 3000;
 app.use(express.static("public"));
 
 const url = "https://www.zet.hr/gtfs-rt-protobuf";
