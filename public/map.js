@@ -16,6 +16,7 @@ const VEHICLE_STATIONARY_MS = 2 * 60 * SECONDS_TO_MILLISECONDS;
 const fetchPeriod = 10;
 
 const inactiveVehicles = L.featureGroup().addTo(map);
+const activeVehicles = L.featureGroup().addTo(map);
 
 var overlays = {
   "Inactive vehicles": inactiveVehicles,
@@ -34,6 +35,7 @@ function update() {
     displayVehicles();
     //deleteInactive();
   }
+
   updateDataAge();
 }
 
@@ -57,19 +59,19 @@ async function displayVehicles() {
           var newLatLng = new L.LatLng(lat, lon);
           vehicleMarkers[listID].marker.setLatLng(newLatLng);
 
-          document.getElementById(vehicleNumber).style.display = "block";
           vehicleMarkers[listID].lastUpdated = element.lastUpdated;
-          if (
-            Date.now() - vehicleMarkers[listID].lastUpdated >
-            VEHICLE_INACTIVE_MS
-          ) {
+          if (vehicleInactive) {
             vehicleMarkers[listID].marker._icon.classList.add(
               "vehicle-inactive"
             );
+            vehicleMarkers[listID].marker.removeFrom(activeVehicles);
+            vehicleMarkers[listID].marker.addTo(inactiveVehicles);
           } else {
             vehicleMarkers[listID].marker._icon.classList.remove(
               "vehicle-inactive"
             );
+            vehicleMarkers[listID].marker.removeFrom(inactiveVehicles);
+            vehicleMarkers[listID].marker.addTo(activeVehicles);
           }
         } else {
           const iconClass =
@@ -107,7 +109,7 @@ async function displayVehicles() {
           };
         }
         setIconAngle(vehicleNumber, element.bearing);
-        checkStationary(vehicleNumber, element.lastMoved);
+        checkStationary(vehicleMarkers[listID], element.lastMoved);
       } catch (error) {}
     }
   } catch (error) {
@@ -168,13 +170,13 @@ function deleteInactive() {
   });
 }
 
-function checkStationary(vehicleNumber, lastMoved) {
+function checkStationary(vehicle, lastMoved) {
   const now = Date.now();
-  const element = document.getElementById(vehicleNumber);
-  if (Math.abs(now - lastMoved) > VEHICLE_STATIONARY_MS) {
-    element.style.display = "none";
+
+  if (isStationaryAge(lastMoved)) {
+    vehicle.marker._icon.classList.add("vehicle-stationary");
   } else {
-    element.style.display = "block";
+    vehicle.marker._icon.classList.remove("vehicle-stationary");
   }
 }
 
@@ -201,12 +203,7 @@ function isStationaryAge(lastMoved) {
 
 function isInactiveAge(lastUpdated) {
   return Date.now() - lastUpdated > VEHICLE_INACTIVE_MS;
-}
-
-async function getFetchTimestamp() {
-  const res = await fetch("/api/fetchTimestamp");
-  const timestamp = await res.json();
-  return timestamp;
+  //return Date.now() - lastUpdated < 5 * SECONDS_TO_MILLISECONDS;
 }
 
 async function setup() {

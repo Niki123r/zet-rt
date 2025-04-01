@@ -58,6 +58,10 @@ small {
   display: none;
 }
 
+.vehicle-stationary img {
+  display: none;
+}
+
 .vehicle-text {
   margin: 0;
   margin-top: 3px;
