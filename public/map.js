@@ -15,13 +15,24 @@ const VEHICLE_INACTIVE_MS = 5 * 60 * SECONDS_TO_MILLISECONDS;
 const VEHICLE_STATIONARY_MS = 2 * 60 * SECONDS_TO_MILLISECONDS;
 const fetchPeriod = 10;
 
+const inactiveVehicles = L.featureGroup().addTo(map);
+
+var overlays = {
+  "Inactive vehicles": inactiveVehicles,
+};
+
+var layerControl = L.control.layers(null, overlays).addTo(map);
+
 let lastFetchTimestamp = Infinity;
 
 function update() {
   const dataAge = Date.now() - lastFetchTimestamp;
-  if (dataAge - 1000 > fetchPeriod * 1000) {
+  if (
+    dataAge - 1 * SECONDS_TO_MILLISECONDS >
+    fetchPeriod * SECONDS_TO_MILLISECONDS
+  ) {
     displayVehicles();
-    deleteInactive();
+    //deleteInactive();
   }
   updateDataAge();
 }
@@ -37,6 +48,8 @@ async function displayVehicles() {
         const VR = element.scheduleID.split("_")[2];
         const listID = element.vehicleNumber;
         const vehicleNumber = parseVehicleNumber(listID);
+
+        let vehicleInactive = isInactiveAge(element.lastUpdated);
 
         if (vehicleMarkers[listID] != null) {
           var lat = element.lat;
@@ -60,8 +73,7 @@ async function displayVehicles() {
           }
         } else {
           const iconClass =
-            "vehicle-icon" +
-            (isInactiveAge(element.lastUpdated) ? " vehicle-inactive" : "");
+            "vehicle-icon" + (vehicleInactive ? " vehicle-inactive" : "");
           const markerIcon = L.divIcon({
             className: iconClass,
             iconSize: [VEHICLE_ICON_SIZE, VEHICLE_ICON_SIZE],
@@ -83,7 +95,11 @@ async function displayVehicles() {
           //marker.bindPopup("<p>" + vehicleNumber + "<br/> VR: " + VR + "</p>");
           const tooltip = `<b> ${vehicleNumber} </b> - Linija <b>${element.routeID} </b>`;
           marker.bindTooltip(tooltip);
-          marker.addTo(map);
+          if (vehicleInactive) {
+            marker.addTo(inactiveVehicles);
+          } else {
+            marker.addTo(map);
+          }
           vehicleMarkers[listID] = {
             marker: marker,
             tooltip: tooltip,
@@ -194,7 +210,7 @@ async function getFetchTimestamp() {
 }
 
 async function setup() {
-  displayVehicles();
+  await displayVehicles();
   setInterval(update, 1000);
 }
 

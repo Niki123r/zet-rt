@@ -54,6 +54,10 @@ small {
   border-color: var(--vehicle-inactive-secondary-color);
 }
 
+.vehicle-inactive img {
+  display: none;
+}
+
 .vehicle-text {
   margin: 0;
   margin-top: 3px;

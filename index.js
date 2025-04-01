@@ -2,6 +2,7 @@ const protobuf = require("protobufjs");
 const express = require("express");
 const { calculateBearing } = require("./utils.js");
 const fs = require("fs");
+const fsa = require("fs").promises;
 
 const app = express();
 const port = 3000;
@@ -14,7 +15,7 @@ const fetchPeriod = 10; // seconds
 let vehicles = {};
 
 app.get("/api/vehicleLocations", async (request, response) => {
-  const res = fs.readFileSync("./cache/vehicles.json", "utf-8");
+  const res = await fsa.readFile("./cache/vehicles.json", "utf-8");
   const json = await JSON.parse(res);
 
   response.send(json);
