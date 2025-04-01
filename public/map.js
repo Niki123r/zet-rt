@@ -66,7 +66,7 @@ function update() {
     dataAge - 1 * SECONDS_TO_MILLISECONDS >
     fetchPeriod * SECONDS_TO_MILLISECONDS
   ) {
-    //displayVehicles();
+    displayVehicles();
     //deleteInactive();
   }
 
