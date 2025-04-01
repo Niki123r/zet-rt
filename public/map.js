@@ -5,6 +5,40 @@ L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
 
+// thx JRI -- https://stackoverflow.com/a/68134250
+// NOTE -- overwrites style of elements that form icon
+// so don't call it after you set element style with .style
+L.ClassedMarker = L.Marker.extend({
+  options: {
+    classes: [],
+  },
+  addClass: function (className) {
+    if (this.options.classes.indexOf(className) === -1) {
+      this.options.classes.push(className);
+    }
+    this._initIcon();
+  },
+  getClasses: function () {
+    return this.options.classes;
+  },
+  removeClass: function (className) {
+    var index = this.options.classes.indexOf(className);
+    if (index > -1) {
+      this.options.classes.splice(index, 1);
+    }
+    this._initIcon();
+  },
+  _initIcon: function () {
+    L.Marker.prototype._initIcon.apply(this, null);
+    for (let cls of this.options.classes) {
+      L.DomUtil.addClass(this._icon, cls);
+    }
+  },
+});
+L.classedMarker = function (latLng, options) {
+  return new L.ClassedMarker(latLng, options);
+};
+
 let vehicleMarkers = {};
 const DEG_TO_RAD = Math.PI / 180;
 const VEHICLE_ICON_SIZE = 23;
@@ -32,7 +66,7 @@ function update() {
     dataAge - 1 * SECONDS_TO_MILLISECONDS >
     fetchPeriod * SECONDS_TO_MILLISECONDS
   ) {
-    displayVehicles();
+    //displayVehicles();
     //deleteInactive();
   }
 
@@ -61,15 +95,11 @@ async function displayVehicles() {
 
           vehicleMarkers[listID].lastUpdated = element.lastUpdated;
           if (vehicleInactive) {
-            vehicleMarkers[listID].marker._icon.classList.add(
-              "vehicle-inactive"
-            );
+            vehicleMarkers[listID].marker.addClass("vehicle-inactive");
             vehicleMarkers[listID].marker.removeFrom(activeVehicles);
             vehicleMarkers[listID].marker.addTo(inactiveVehicles);
           } else {
-            vehicleMarkers[listID].marker._icon.classList.remove(
-              "vehicle-inactive"
-            );
+            vehicleMarkers[listID].marker.removeClass("vehicle-inactive");
             vehicleMarkers[listID].marker.removeFrom(inactiveVehicles);
             vehicleMarkers[listID].marker.addTo(activeVehicles);
           }
@@ -90,7 +120,7 @@ async function displayVehicles() {
               `<img class="vehicle-pointer" id="${vehicleNumber}" src="arrow.svg">`,
           });
 
-          let marker = L.marker([element.lat, element.lon], {
+          let marker = L.classedMarker([element.lat, element.lon], {
             icon: markerIcon,
             riseOnHover: true,
           });
@@ -108,8 +138,8 @@ async function displayVehicles() {
             lastUpdated: element.lastUpdated,
           };
         }
-        setIconAngle(vehicleNumber, element.bearing);
         checkStationary(vehicleMarkers[listID], element.lastMoved);
+        setIconAngle(vehicleNumber, element.bearing);
       } catch (error) {}
     }
   } catch (error) {
@@ -171,12 +201,10 @@ function deleteInactive() {
 }
 
 function checkStationary(vehicle, lastMoved) {
-  const now = Date.now();
-
   if (isStationaryAge(lastMoved)) {
-    vehicle.marker._icon.classList.add("vehicle-stationary");
+    vehicle.marker.addClass("vehicle-stationary");
   } else {
-    vehicle.marker._icon.classList.remove("vehicle-stationary");
+    vehicle.marker.removeClass("vehicle-stationary");
   }
 }
 
@@ -199,11 +227,12 @@ function secondsToHHMMSS(seconds) {
 
 function isStationaryAge(lastMoved) {
   return Date.now() - lastMoved > VEHICLE_STATIONARY_MS;
+  //return Date.now() - lastMoved > 5 * SECONDS_TO_MILLISECONDS;
 }
 
 function isInactiveAge(lastUpdated) {
   return Date.now() - lastUpdated > VEHICLE_INACTIVE_MS;
-  //return Date.now() - lastUpdated < 5 * SECONDS_TO_MILLISECONDS;
+  //return Date.now() - lastUpdated > 5 * SECONDS_TO_MILLISECONDS;
 }
 
 async function setup() {
