@@ -19,11 +19,10 @@ let timestamp;
 router.get("/vehicleLocations", async (request, response) => {
   //const res = await fsa.readFile("./cache/vehicles.json", "utf-8");
   //const json = await JSON.parse(res);
+  const res = await fetch("103.13.211.71:3000/api/vehicleLocations");
+  const json = await JSON.parse(res);
 
-  response.send({
-    timestamp: Date.now(),
-    vehicles: Object.values(vehicles),
-  });
+  response.send(res);
 });
 
 async function cacheLocations() {
@@ -155,11 +154,11 @@ function setupFolders(folders) {
 function setup() {
   //setupFolders(["./cache"]);
   //loadOldVehicles();
-  setInterval(cacheLocations, fetchPeriod * 1000);
-  cacheLocations();
+  //setInterval(cacheLocations, fetchPeriod * 1000);
+  //cacheLocations();
 }
 
-setup();
+//setup();
 
 app.use("/api/", router);
 
