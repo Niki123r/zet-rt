@@ -10,7 +10,7 @@ const router = express.Router();
 const port = 3000;
 
 const url = "https://www.zet.hr/gtfs-rt-protobuf";
-const protoLocation = "../../gtfs.proto";
+const protoLocation = "gtfs.proto";
 const fetchPeriod = 10; // seconds
 
 let vehicles = {};
