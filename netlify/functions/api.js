@@ -14,12 +14,16 @@ const protoLocation = "gtfs.proto";
 const fetchPeriod = 10; // seconds
 
 let vehicles = {};
+let timestamp;
 
 router.get("/vehicleLocations", async (request, response) => {
   //const res = await fsa.readFile("./cache/vehicles.json", "utf-8");
   //const json = await JSON.parse(res);
 
-  response.send(vehicleLocations);
+  response.send({
+    timestamp: Date.now(),
+    vehicles: cache,
+  });
 });
 
 async function cacheLocations() {
@@ -58,6 +62,7 @@ async function cacheLocations() {
           lastMoved: vehicle.lastMoved,
         });
       }
+      timestamp = Date.now();
       const vehicleLocations = {
         timestamp: Date.now(),
         vehicles: cache,
