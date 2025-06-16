@@ -16,10 +16,10 @@ const fetchPeriod = 10; // seconds
 let vehicles = {};
 
 router.get("/vehicleLocations", async (request, response) => {
-  const res = await fsa.readFile("./cache/vehicles.json", "utf-8");
-  const json = await JSON.parse(res);
+  //const res = await fsa.readFile("./cache/vehicles.json", "utf-8");
+  //const json = await JSON.parse(res);
 
-  response.send(json);
+  response.send(vehicleLocations);
 });
 
 async function cacheLocations() {
@@ -62,7 +62,7 @@ async function cacheLocations() {
         timestamp: Date.now(),
         vehicles: cache,
       };
-      writeJSON(vehicleLocations, "vehicles");
+      //writeJSON(vehicleLocations, "vehicles");
     } catch (error) {
       console.error(error);
     }
@@ -148,8 +148,8 @@ function setupFolders(folders) {
 }
 
 function setup() {
-  setupFolders(["./cache"]);
-  loadOldVehicles();
+  //setupFolders(["./cache"]);
+  //loadOldVehicles();
   setInterval(cacheLocations, fetchPeriod * 1000);
   cacheLocations();
 }
