@@ -19,10 +19,10 @@ let timestamp;
 router.get("/vehicleLocations", async (request, response) => {
   //const res = await fsa.readFile("./cache/vehicles.json", "utf-8");
   //const json = await JSON.parse(res);
-  const res = await fetch("103.13.211.71:3000/api/vehicleLocations");
-  const json = await JSON.parse(res);
+  const res = await fetch("http://103.13.211.71:3000/api/vehicleLocations");
+  const json = await res.json();
 
-  response.send(res);
+  response.send(json);
 });
 
 async function cacheLocations() {
