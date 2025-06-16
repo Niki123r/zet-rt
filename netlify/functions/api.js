@@ -22,14 +22,14 @@ router.get("/vehicleLocations", async (request, response) => {
 
   response.send({
     timestamp: Date.now(),
-    vehicles: cache,
+    vehicles: Object.values(vehicles),
   });
 });
 
 async function cacheLocations() {
   const proto = protobuf.load(protoLocation, async (err, root) => {
     if (err) {
-      throw err;
+      console.error(err);
     }
     try {
       var message = root.lookupType("Message");
