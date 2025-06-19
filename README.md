@@ -1,6 +1,6 @@
 # zet-rt
 Simple Node based web app that displays the real-time position of [`ZET`](https://www.zet.hr/) trams and buses using their [`GTFS feed`](https://www.zet.hr/odredbe/datoteke-u-gtfs-formatu/669).\
-Currently being hosted on https://zet-rt-249527749218.europe-central2.run.app/ (subject to change).
+Currently being hosted on: https://zet-rt.netlify.app/ (subject to change).
 
 ## Setup
 Install the required packages using npm:
