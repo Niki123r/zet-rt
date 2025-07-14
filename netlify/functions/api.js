@@ -19,7 +19,9 @@ let timestamp;
 router.get("/vehicleLocations", async (request, response) => {
   //const res = await fsa.readFile("./cache/vehicles.json", "utf-8");
   //const json = await JSON.parse(res);
-  const res = await fetch("http://103.13.211.71:3000/api/vehicleLocations");
+  const res = await fetch(
+    "http://v2202507287597362232.happysrv.de:3000/api/vehicleLocations"
+  );
   const json = await res.json();
 
   response.send(json);
