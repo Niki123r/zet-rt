@@ -5,6 +5,16 @@ L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
 
+var newLegend = L.control({ position: "bottomleft" });
+
+newLegend.onAdd = function (map) {
+  var div = L.DomUtil.create("div", "info legend");
+  div.innerHTML = "Last update: <strong id='lastUpdate'>?</strong> ago";
+  return div;
+};
+
+newLegend.addTo(map);
+
 // thx JRI -- https://stackoverflow.com/a/68134250
 // NOTE -- overwrites style of elements that form icon
 // so don't call it after you set element style with .style
@@ -93,7 +103,7 @@ async function displayVehicles() {
           var newLatLng = new L.LatLng(lat, lon);
           vehicleMarkers[listID].marker.setLatLng(newLatLng);
 
-          vehicleMarkers[listID].lastUpdated = element.lastUpdated;
+          vehicleMarkers[listID].lastUpdated = element.lastUpdatedZET;
           if (vehicleInactive) {
             vehicleMarkers[listID].marker.addClass("vehicle-inactive");
             vehicleMarkers[listID].marker.removeFrom(activeVehicles);
@@ -156,6 +166,10 @@ function setIconAngle(vehicleNumber, angle) {
 
 function updateDataAge() {
   const now = Date.now();
+  const serverUpdateText = document.getElementById("lastUpdate");
+  serverUpdateText.textContent = secondsToHHMMSS(
+    Math.round((now - lastFetchTimestamp) / SECONDS_TO_MILLISECONDS)
+  );
   for (let vehicle of Object.entries(vehicleMarkers)) {
     let age = (now - vehicle[1].lastUpdated) / SECONDS_TO_MILLISECONDS;
     age = Math.round(age);
@@ -209,17 +223,21 @@ function checkStationary(vehicle, lastMoved) {
 }
 
 function secondsToHHMMSS(seconds) {
-  const hours = Math.floor(seconds / 60 / 60);
+  const days = Math.floor(seconds / 60 / 60 / 24);
+  const hours = Math.floor((seconds / 60 / 60) % 24);
   const minutes = Math.floor(seconds / 60) % 60;
   seconds = seconds % 60;
 
   let string = "";
 
+  if (days > 0) {
+    string += `${days}d `;
+  }
   if (hours > 0) {
-    string += `${hours}h`;
+    string += `${hours}h `;
   }
   if (minutes > 0 || hours > 0) {
-    string += `${minutes}m`;
+    string += `${minutes}m `;
   }
   string += `${seconds}s`;
   return string;
