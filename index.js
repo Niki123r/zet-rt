@@ -5,24 +5,30 @@ const fs = require("fs");
 const fsa = require("fs").promises;
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT ?? 3000;
 app.use(express.static("public"));
 
-const url = "https://www.zet.hr/gtfs-rt-protobuf";
+const url = "https://api.autotrolej.hr/api/open/v1/voznired/autobusi";
 const protoLocation = "gtfs.proto";
-const fetchPeriod = 10; // seconds
+const fetchPeriod = 15; // seconds
 
 let vehicles = {};
 
-app.get("/api/vehicleLocations", async (request, response) => {
-  const res = await fsa.readFile("./cache/vehicles.json", "utf-8");
-  const json = await JSON.parse(res);
+let schedule = null;
 
-  response.send(json);
+app.get("/api/vehicleLocations", async (request, response) => {
+  try {
+    const res = await fsa.readFile("./cache/vehicles.json", "utf-8");
+    const json = await JSON.parse(res);
+
+    response.send(json);
+  } catch {
+    response.status(204).send();
+  }
 });
 
 async function cacheLocations() {
-  const proto = protobuf.load(protoLocation, async (err, root) => {
+  /*const proto = protobuf.load(protoLocation, async (err, root) => {
     if (err) {
       throw err;
     }
@@ -65,15 +71,34 @@ async function cacheLocations() {
     } catch (error) {
       console.error(error);
     }
-  });
+  });*/
+
+  try {
+    const data = await fetch(url);
+    const json = await data.json();
+    let cache = [];
+    json.res.forEach((element) => {
+      processVehicle(element);
+    });
+
+    let timestamp = Date.now();
+
+    Object.values(vehicles).forEach((element) => {
+      cache.push({ ...element });
+    });
+
+    writeJSON({ vehicles: cache, timestamp: timestamp }, "vehicles");
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 function processVehicle(vehicle) {
-  const vehicleID = vehicle.detailsLocation.vehicle.vehicleNumber;
+  const vehicleID = vehicle.gbr;
   const now = Date.now();
   if (vehicles[vehicleID] != null) {
-    var lat = vehicle.detailsLocation.location.lat;
-    var lon = vehicle.detailsLocation.location.lon;
+    var lat = vehicle.lat;
+    var lon = vehicle.lon;
 
     vehicles[vehicleID].lat = lat;
     vehicles[vehicleID].lon = lon;
@@ -81,7 +106,7 @@ function processVehicle(vehicle) {
       vehicles[vehicleID].oldLat,
       vehicles[vehicleID].oldLon,
       lat,
-      lon
+      lon,
     );
     if (bearing != null) {
       vehicles[vehicleID].bearing = bearing;
@@ -90,25 +115,23 @@ function processVehicle(vehicle) {
     vehicles[vehicleID].oldLat = lat;
     vehicles[vehicleID].oldLon = lon;
     vehicles[vehicleID].lastUpdated = now;
-    vehicles[vehicleID].lastUpdatedZET =
-      vehicle.detailsLocation.timestamp * 1000;
+    vehicles[vehicleID].lastUpdatedZET = vehicle.lastUpdated;
 
-    vehicles[vehicleID].scheduleID =
-      vehicle.detailsLocation.scheduleData.vehicleId;
-    vehicles[vehicleID].routeID = vehicle.detailsLocation.scheduleData.routeId;
+    vehicles[vehicleID].scheduleID = undefined;
+    vehicles[vehicleID].routeID = getLine(vehicle);
     return;
   }
   vehicles[vehicleID] = {
     vehicleNumber: vehicleID,
-    scheduleID: vehicle.detailsLocation.scheduleData.vehicleId,
-    routeID: vehicle.detailsLocation.scheduleData.routeId,
-    lat: vehicle.detailsLocation.location.lat,
-    lon: vehicle.detailsLocation.location.lon,
+    scheduleID: vehicle.gbr,
+    routeID: getLine(vehicle),
+    lat: vehicle.lat,
+    lon: vehicle.lon,
     oldLat: null,
     oldLon: null,
     bearing: null,
     lastUpdated: Date.now(),
-    lastUpdatedZET: vehicle.detailsLocation.timestamp * 1000,
+    lastUpdatedZET: vehicle.lastUpdated,
     lastMoved: Date.now(),
   };
 }
@@ -127,15 +150,61 @@ async function writeJSON(json, file_name) {
   });
 }
 
-async function loadOldVehicles() {
+function loadOldVehicles() {
   try {
     let file = fs.readFileSync("./cache/vehicles.json");
     const json = JSON.parse(file.toString());
     for (let vehicle of json.vehicles) {
       vehicles[vehicle.vehicleNumber] = vehicle;
     }
-    console.log(vehicles);
-  } catch {}
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function loadJsonFile(path) {
+  try {
+    let file = fs.readFileSync(path);
+    const json = JSON.parse(file.toString());
+    return json;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function loadSchedule() {}
+
+async function getSchedule() {
+  const now = Date.now();
+  if (
+    (schedule != null && schedule.timestamp + 24 * 60 * 60 * 1000 > now) ||
+    schedule == null
+  ) {
+    const res = await fetch(
+      "https://api.autotrolej.hr/api/open/v1/voznired/polasci",
+    );
+
+    const json = await res.json();
+
+    schedule = {
+      timestamp: now,
+      schedule: json.res,
+    };
+  }
+}
+
+function getLine(vehicle) {
+  const voznjaId = vehicle.voznjaId;
+  const voznjaBusId = vehicle.voznjaBusId;
+  for (let element of Object.values(schedule.schedule)) {
+    for (let polazak of element.polazakList) {
+      if (polazak.voznjaId == voznjaId || polazak.voznjaBusId == voznjaBusId) {
+        return element.brojLinije;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 function setupFolders(folders) {
@@ -146,9 +215,13 @@ function setupFolders(folders) {
   }
 }
 
-function setup() {
+async function setup() {
   setupFolders(["./cache"]);
   loadOldVehicles();
+
+  await getSchedule();
+  setInterval(getSchedule, fetchPeriod * 60 * 1000);
+
   setInterval(cacheLocations, fetchPeriod * 1000);
   cacheLocations();
 }

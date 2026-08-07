@@ -1,4 +1,4 @@
-var map = L.map("map").setView([45.80391, 15.97841], 13);
+var map = L.map("map").setView([45.33127, 14.44857], 13);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution:
@@ -47,7 +47,7 @@ const ICON_ANGLE_OFFSET = 225;
 const SECONDS_TO_MILLISECONDS = 1000;
 const VEHICLE_INACTIVE_MS = 5 * 60 * SECONDS_TO_MILLISECONDS;
 const VEHICLE_STATIONARY_MS = 2 * 60 * SECONDS_TO_MILLISECONDS;
-const fetchPeriod = 10;
+const fetchPeriod = 15;
 
 const inactiveVehicles = L.featureGroup().addTo(map);
 const activeVehicles = L.featureGroup().addTo(map);
@@ -81,13 +81,20 @@ async function displayVehicles() {
 
     for (let element of data.vehicles) {
       try {
-        const VR = element.scheduleID.split("_")[2];
+        //const VR = element.scheduleID.split("_")[2];
         const listID = element.vehicleNumber;
-        const vehicleNumber = parseVehicleNumber(listID);
+        const vehicleNumber = listID;
+        let routeID = element.routeID;
+        let routeText = `Linija <b> ${routeID} </b>`;
+
+        if (!routeID) {
+          routeID = "?";
+          routeText = "Nepoznata linija";
+        }
 
         let vehicleInactive = isInactiveAge(element.lastUpdated);
 
-        if (vehicleMarkers[listID] != null) {
+        if (vehicleMarkers[listID]) {
           var lat = element.lat;
           var lon = element.lon;
           var newLatLng = new L.LatLng(lat, lon);
@@ -112,9 +119,9 @@ async function displayVehicles() {
             iconAnchor: [VEHICLE_ICON_SIZE / 2, VEHICLE_ICON_SIZE / 2],
             popupAnchor: [0, 0],
             html:
-              `<b> <p class="vehicle-text"> ${element.routeID} </b> </br>` +
+              `<b> <p class="vehicle-text"> ${routeID} </b> </br>` +
               "<small> " +
-              VR.slice(-2) +
+              "" +
               "</small>" +
               " </p>" +
               `<img class="vehicle-pointer" id="${vehicleNumber}" src="arrow.svg">`,
@@ -124,8 +131,8 @@ async function displayVehicles() {
             icon: markerIcon,
             riseOnHover: true,
           });
-          //marker.bindPopup("<p>" + vehicleNumber + "<br/> VR: " + VR + "</p>");
-          const tooltip = `<b> ${vehicleNumber} </b> - Linija <b>${element.routeID} </b>`;
+          //marker.bindPopup("<p>" + vehicleNumber + "<br/> VR: " + "" + "</p>");
+          const tooltip = `Vozilo <b> ${vehicleNumber} </b> - ${routeText}`;
           marker.bindTooltip(tooltip);
           if (vehicleInactive) {
             marker.addTo(inactiveVehicles);
@@ -140,7 +147,9 @@ async function displayVehicles() {
         }
         checkStationary(vehicleMarkers[listID], element.lastMoved);
         setIconAngle(vehicleNumber, element.bearing);
-      } catch (error) {}
+      } catch (error) {
+        console.error(error);
+      }
     }
   } catch (error) {
     console.error(error);
@@ -160,7 +169,7 @@ function updateDataAge() {
     let age = (now - vehicle[1].lastUpdated) / SECONDS_TO_MILLISECONDS;
     age = Math.round(age);
     vehicle[1].marker._tooltip.setContent(
-      vehicle[1].tooltip + ` \n(${secondsToHHMMSS(age)} ago)`
+      vehicle[1].tooltip + ` \n(${secondsToHHMMSS(age)} ago)`,
     );
   }
 }
