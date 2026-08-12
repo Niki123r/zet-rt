@@ -188,22 +188,32 @@ async function getSchedule() {
     (schedule != null && schedule.timestamp + 24 * 60 * 60 * 1000 > now) ||
     schedule == null
   ) {
-    const res = await fetch(
-      "https://api.autotrolej.hr/api/open/v1/voznired/polasci",
-    );
+    let schedule, schedule_alt;
 
-    const json = await res.json();
+    try {
+      const res = await fetch(
+        "https://api.autotrolej.hr/api/open/v1/voznired/polasci",
+      );
 
-    let res2 = await fetch(
-      "http://e-usluge2.rijeka.hr/OpenData/ATvoznired.json",
-    );
+      schedule = await res.json();
+    } catch (error) {
+      console.error(error);
+    }
 
-    const json2 = await res2.json();
+    try {
+      let res2 = await fetch(
+        "http://e-usluge2.rijeka.hr/OpenData/ATvoznired.json",
+      );
+
+      schedule_alt = await res2.json();
+    } catch (error) {
+      console.error(error);
+    }
 
     schedule = {
       timestamp: now,
-      schedule: json.res,
-      schedule_alt: json2,
+      schedule: schedule.res,
+      schedule_alt: schedule_alt,
     };
 
     writeJSON(schedule, "schedule");
