@@ -172,7 +172,15 @@ function loadJsonFile(path) {
   }
 }
 
-function loadSchedule() {}
+function loadSchedule() {
+  try {
+    let file = fs.readFileSync("./cache/schedule.json");
+    const json = JSON.parse(file.toString());
+    schedule = json;
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 async function getSchedule() {
   const now = Date.now();
@@ -186,10 +194,19 @@ async function getSchedule() {
 
     const json = await res.json();
 
+    let res2 = await fetch(
+      "http://e-usluge2.rijeka.hr/OpenData/ATvoznired.json",
+    );
+
+    const json2 = await res2.json();
+
     schedule = {
       timestamp: now,
       schedule: json.res,
+      schedule_alt: json2,
     };
+
+    writeJSON(schedule, "schedule");
   }
 }
 
@@ -200,6 +217,12 @@ function getLine(vehicle) {
     for (let polazak of element.polazakList) {
       if (polazak.voznjaId == voznjaId || polazak.voznjaBusId == voznjaBusId) {
         return element.brojLinije;
+      }
+    }
+
+    for (let element of schedule.schedule_alt) {
+      if (element.PolazakId == voznjaBusId) {
+        return element.BrojLinije;
       }
     }
   }
@@ -218,6 +241,7 @@ function setupFolders(folders) {
 async function setup() {
   setupFolders(["./cache"]);
   loadOldVehicles();
+  loadSchedule();
 
   await getSchedule();
   setInterval(getSchedule, fetchPeriod * 60 * 1000);
