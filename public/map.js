@@ -2,7 +2,7 @@ var map = L.map("map").setView([45.80391, 15.97841], 13);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution:
-    '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> | Live feed from <a href="https://www.zet.hr/preuzimanja/odredbe/datoteke-u-gtfs-formatu/669">ZET</a>',
 }).addTo(map);
 
 var newLegend = L.control({ position: "bottomleft" });
@@ -59,16 +59,44 @@ const VEHICLE_INACTIVE_MS = 5 * 60 * SECONDS_TO_MILLISECONDS;
 const VEHICLE_STATIONARY_MS = 2 * 60 * SECONDS_TO_MILLISECONDS;
 const fetchPeriod = 10;
 
-const inactiveVehicles = L.featureGroup().addTo(map);
+const detailedTiming = L.featureGroup();
+const inactiveVehicles = L.featureGroup();
 const activeVehicles = L.featureGroup().addTo(map);
 
 var overlays = {
   "Inactive vehicles": inactiveVehicles,
+  "Detailed timing data": detailedTiming,
 };
 
 var layerControl = L.control.layers(null, overlays).addTo(map);
 
 let lastFetchTimestamp = Infinity;
+
+let tooltipFunction;
+
+function tooltipDetailedTiming(age, serverAge) {
+  return ` (Fetched: ${secondsToHHMMSS(
+    serverAge,
+  )} ago)<br>(Position from: ${secondsToHHMMSS(age)} ago)`;
+}
+
+function tooltipSimpleTiming(age, serverAge) {
+  return ` \n(${secondsToHHMMSS(age)} ago)`;
+}
+
+tooltipFunction = tooltipSimpleTiming;
+
+map.on("overlayadd", (e) => {
+  if (e.name == "Detailed timing data") {
+    tooltipFunction = tooltipDetailedTiming;
+  }
+});
+
+map.on("overlayremove", (e) => {
+  if (e.name == "Detailed timing data") {
+    tooltipFunction = tooltipSimpleTiming;
+  }
+});
 
 function update() {
   const dataAge = Date.now() - lastFetchTimestamp;
@@ -104,6 +132,7 @@ async function displayVehicles() {
           vehicleMarkers[listID].marker.setLatLng(newLatLng);
 
           vehicleMarkers[listID].lastUpdated = element.lastUpdatedZET;
+          vehicleMarkers[listID].lastFetched = element.lastUpdated;
           if (vehicleInactive) {
             vehicleMarkers[listID].marker.addClass("vehicle-inactive");
             vehicleMarkers[listID].marker.removeFrom(activeVehicles);
@@ -145,7 +174,8 @@ async function displayVehicles() {
           vehicleMarkers[listID] = {
             marker: marker,
             tooltip: tooltip,
-            lastUpdated: element.lastUpdated,
+            lastUpdated: element.lastUpdatedZET,
+            lastFetched: element.lastUpdated,
           };
         }
         checkStationary(vehicleMarkers[listID], element.lastMoved);
@@ -168,13 +198,15 @@ function updateDataAge() {
   const now = Date.now();
   const serverUpdateText = document.getElementById("lastUpdate");
   serverUpdateText.textContent = secondsToHHMMSS(
-    Math.round((now - lastFetchTimestamp) / SECONDS_TO_MILLISECONDS)
+    Math.round((now - lastFetchTimestamp) / SECONDS_TO_MILLISECONDS),
   );
   for (let vehicle of Object.entries(vehicleMarkers)) {
     let age = (now - vehicle[1].lastUpdated) / SECONDS_TO_MILLISECONDS;
     age = Math.round(age);
+    let serverAge = (now - vehicle[1].lastFetched) / SECONDS_TO_MILLISECONDS;
+    serverAge = Math.round(serverAge);
     vehicle[1].marker._tooltip.setContent(
-      vehicle[1].tooltip + ` \n(${secondsToHHMMSS(age)} ago)`
+      vehicle[1].tooltip + tooltipFunction(age, serverAge),
     );
   }
 }
